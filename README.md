@@ -1,154 +1,112 @@
-# Upgrade Oracle 5150
+# Upgrade Oracle · Bitcoin Cash edition
 
-**Know what breaks. Before it breaks.** A GLM agent reads real dependency release notes, checks their quotes, searches your source files, and prints a ranked report with evidence receipts.
+A contract desk for **BCH BLAZE 2026**. Paste CashScript, compile it, inspect deterministic findings backed by pinned specification quotes, then seal the report with your own wallet. The original night sky, mountain ruins, CRT terminal and paper receipts remain.
 
-Built by Kulraj Singh for the DoraHacks Z.AI general bounty. Next.js 16, React 19, TypeScript, GLM-5.3, npm and public GitHub APIs. MIT licensed. No submission, deployment or push is performed by this project.
+**Contract Doctor works without an API key.** No deployment, mainnet key, mainnet spending or hackathon submission is performed by this repository. See [NOTES-bch.md](NOTES-bch.md) for tested behavior and live-network limitations.
 
-## Start here
+## Run
 
-Requires Node.js 20.19+ and npm. No API key is needed for the three recorded demos.
+Requires Node.js 20.19+ and npm. Install development dependencies too: the install step applies the reviewed WizardConnect patches.
 
-```bash
-npm install
+```sh
+npm ci
 npm run dev
 ```
 
-Open http://localhost:3000. Select a sample cartridge and press **CONSULT THE ORACLE**. The “Demo mode: recorded run” badge is always visible without a key. These are actual captured GLM runs, not hand-written answers or fabricated traces.
+Open http://localhost:3000. If the host has exhausted its file-watch quota, use `npm run build` followed by `npm start`.
 
-| Do this | See this |
+1. **Contract Doctor** — choose Recurring payment, P2SH covenant or Token vault, or paste/upload a `.cash` file. Every consultation runs the installed compiler; samples are not canned responses.
+2. **Dependencies** — the existing release-note analyzer, now with CashScript 0.11 → 0.14, libauth and mainnet-js input presets when explicitly enabled. There are no recorded BCH dependency runs, so their demo cartridges are hidden.
+3. **Verify a seal** — enter a transaction ID and select its network. Drop the downloaded report JSON to compare the complete commitment locally.
+
+The three demonstration contracts illustrate patterns, not production authorization or financial policies. They must not be deployed as audited vaults.
+
+## Contract Doctor
+
+`POST /api/doctor` accepts `{ "source": "…", "file": "example.cash" }`. It returns a reproducible `upgrade-oracle/bch-report-v1` JSON report with compiler information, bytecode, sizes, findings, matched source lines and source digests.
+
+The installed **cashc/CashScript 0.14.0** packages are used. Compiler tests demonstrate native `for` loops and top-level `function … returns (…)` syntax; small functions may be inlined. The app does not claim every extracted function emits `OP_DEFINE`/`OP_INVOKE` or saves bytes.
+
+Compilation accepts one source file up to 20 KB, runs in a worker with a 5-second deadline and a 128 MB heap cap, and uses CashScript's empty in-memory import resolver. Pasted code cannot resolve files from the server. Compiler output is not logged. At most two compilations run concurrently per process; operators should add infrastructure-level request limits for a public deployment.
+
+**Measurements describe the compiled template.** Constructor argument pushes are excluded. Static opcount counts top-level non-push instructions, excluding pushed function bodies. It is not execution cost, consensus resource usage, or the size of a spending transaction.
+
+Rules cover P2SH20/32 construction, token commitment bounds, unrolled repeated checks, reusable checks, unlocking-size assumptions and the Faster Blocks proposal's timelock semantics. Comment/string-only references are excluded. Findings are ordered risk → watch → opportunity. These are review prompts, not proof of a bug or a complete audit.
+
+Every protocol claim is presented as an exact, contiguous quote from a fetched source. `src/lib/bch/sources.ts` checks the snapshot SHA-256 and reuses `src/lib/citations.ts`; a rule with unavailable or mismatching evidence is suppressed. The Faster Blocks finding says **proposed, not locked in**, with its snapshot date. It does not claim existing timelocks suddenly expire ten times sooner.
+
+## Seal with WizardConnect
+
+1. Download the report JSON and select **Seal this report**.
+2. Select **chipnet** (default), connect a compatible WizardConnect wallet by QR, and use the same network in the wallet. Sessions are kept in memory, without localStorage persistence.
+3. **Review seal transaction** derives a P2PKH receive address from the wallet's receive xpub and selected non-hardened address index. Fund that exact address. The app does not scan the whole wallet.
+4. The server queries pinned Electrum WSS endpoints through `@electrum-cash/network` using protocol 1.5.0. Source transactions are fetched, hash-checked and decoded. Token-bearing and coinbase outputs are excluded.
+5. Genesis requires a spendable plain BCH UTXO whose output index is **0**. If absent, **Prepare a vout-0 self-send** builds a separate transaction returning the funds to output 0 of the same address. Review and sign it, then refresh to build the seal.
+6. Review the fees, sign in the wallet and broadcast. The app verifies unchanged inputs/outputs, `ALL | FORKID | UTXOS` (`0x61`) signatures, and the complete transaction using libauth's **BCH 2026 VM** before broadcasting.
+
+The genesis output contains one immutable NFT (`capability: none`, fungible amount zero), with category equal to the display-order txid of the selected vout-0 input. It carries 1,000 satoshis. Remaining plain BCH returns to the same wallet address; no token inputs are consumed. Fees reserve 110 unlocking bytes per input at 2 sat/byte. There is no silent dust donation: insufficient change requires additional funding.
+
+The mainnet switch requires an explicit **“your wallet, real BCH”** acknowledgement and reconnects the wallet. It uses the user's wallet for signing. The app does not generate or hold any blockchain private key.
+
+If `NEXT_PUBLIC_SEAL_FEE_ADDRESS` is configured, a separate **1,000 satoshi** service-fee output is included in the seal, not the prep transaction. That public address must match the selected network. A malformed or wrong-network address stops preparation. The default has no service fee.
+
+WizardConnect's documented wire serializers are required: the transaction travels as hex and source-output BigInts use the SDK's extended JSON format. The installed SDK types describe native values, but its transport uses `JSON.stringify` directly. `patches/` also disables protocol/key logging, removes raw session data from error logs, and makes QR cancellation local and bounded when no wallet has paired. The QR portal also has dialog semantics, Escape handling and a keyboard focus trap. Patches preserve upstream licenses and are reapplied by `npm ci`.
+
+**Live status:** local encrypted wallet integration and VM verification pass. Public chipnet Electrum/faucet connectivity failed in this environment; no chipnet or mainnet broadcast is claimed. Wallet-specific interoperability and funded network flows still need an external live check.
+
+## Commitment format
+
+The application uses **66 bytes**, within the fetched specification's 128-byte limit:
+
+| Offset | Length | Contents |
+| --- | ---: | --- |
+| 0 | 32 | SHA-256 of canonical report JSON, UTF-8 |
+| 32 | 32 | SHA-256 of raw compiled template bytecode bytes |
+| 64 | 1 | Ruleset version, currently `0x01` |
+| 65 | 1 | Flags: bit 0 opportunity, bit 1 watch, bit 2 risk; other bits zero |
+
+Canonical JSON sorts object keys lexicographically, preserves array order and strings, has no insignificant whitespace, and allows only null, booleans, strings and safe integer numbers. It rejects undefined, non-finite/fractional numbers and other non-JSON types. The report includes the supplied source, compiler version, findings and source pins; there is no nondeterministic analysis timestamp. Constructor arguments are not committed because they are not part of the compilation input.
+
+`/seal/[txid]?net=chipnet` fetches and hash-checks the raw transaction, finds immutable NFT genesis outputs with the supported commitment layout, and shows each field. Uploaded/dropped report files remain in the browser. Matching requires both hashes, the ruleset and all flags. This proves agreement with an on-chain commitment; it does not authenticate an author, re-audit the contract or certify the report's conclusions. Confirmation status comes from Electrum, without an SPV inclusion proof.
+
+## Sources and reproducibility
+
+Fetched **2026-10-27** via curl. Raw text, fetch dates, content hashes and exact pinned URLs are in [`src/sources/bch/manifest.json`](src/sources/bch/manifest.json).
+
+| Snapshot | Origin |
 | --- | --- |
-| Select **Next.js 14.2 → 16.0** and consult | Breaking changes matched to a small App Router app and Next configuration |
-| Select **React Router 5.3 → 6.22** and consult | v5 routing APIs matched against the official v6 migration notes |
-| Select **ESLint 8 → 9** and consult | Removed rule/context APIs matched to a config and custom rule |
-| Open **View evidence receipt** | Exact source quote, pinned URL, source version, interpretation and file:line matches |
-| Open **agent trace** | Every URL, method, elapsed milliseconds, byte count, cache hit and failed request |
-| Select a verdict counter | Findings filtered by exact, fuzzy or absent API usage |
-| Press **JSON** | A portable report containing findings, original fetched notes and the complete trace |
-| Edit a sample without a server key | An explicit refusal to misrepresent the edit as a newly analyzed recorded run |
-| Run `npm test` | Deterministic tests, including all three demo requests with network disabled |
+| May 2026 upgrade specification | https://upgradespecs.bitcoincashnode.org/2026-05-15-upgrade/ |
+| P2S, loops, functions, bitwise | `bitjson/bch-p2s`, `bitjson/bch-loops`, `bitjson/bch-functions`, `bitjson/bch-bitwise`, pinned GitHub commits |
+| Faster Blocks | `0353F40E/fablous`, pinned GitLab commit |
+| OP_SIGHASH | `0353F40E/sighash`, pinned GitLab commit |
+| CashScript 0.14.0 release notes | https://github.com/CashScript/cashscript/releases/tag/v0.14.0 |
 
-## Live analysis
+Bitwise and OP_SIGHASH are retained as source snapshots; this release has no findings claiming their applicability. GitHub/GitLab CHIP links are commit-pinned. The upgrade website and release response are preserved by content hash; their live pages can change.
 
-Copy `.env.example` to `.env.local`, put your own API key in the file, and restart Next.js. Never commit that file.
+Full expected deterministic reports live alongside the three `.cash` examples. `npm run record:bch` recompiles and regenerates them; tests compare the full report. These are compiler/rule fixtures, not recorded model runs. Changing sources or report semantics requires a deliberate ruleset version/layout review before minting new seals.
 
-```dotenv
-GLM_BASE_URL=https://api.tokenfactory.nebius.com/v1
-GLM_API_KEY=
-GLM_MODEL=zai-org/GLM-5.3
-```
+`@bitauth/libauth` is pinned to **3.1.0-next.8**, the version used by CashScript 0.14.0, because it includes the BCH 2026 VM and 128-byte commitment validation. The older stable 3.0.0 VM does not provide that validation target.
 
-The endpoint is OpenAI-compatible chat completions. The browser receives only a live/demo boolean, never the key. The server uses JSON mode, low reasoning effort, temperature 0.1 and bounded completion budgets: 6,000 tokens for extraction and 3,600 for a batch of fixes. Typical recorded completions are much smaller. All upstream requests, including GLM, time out after 10 seconds. The entire API run has a 270-second deadline within a 300-second route budget.
+## Optional dependency model
 
-Input modes:
+Copy `.env.example` to an ignored local environment file. Set the explicit opt-in, your HTTPS chat-completions endpoint, model name and key using the variable names documented there. Restart the local server. No specific inference vendor is required; no key is configured by this work. Model mode is forced off on Vercel.
 
-1. **Bumps:** enter `next 14.2.0 -> 16.0.0`, one per line (up to six). Scoped names and semver ranges work. `latest` is allowed as a target.
-2. **package.json:** paste the current and target manifests. Only existing dependencies whose ranges changed are considered. Leave the target empty to select npm's latest stable tags. More than six candidates are rejected; use explicit bumps to select a smaller set.
-3. **GitHub:** enter `https://github.com/owner/repository`. The agent resolves the default branch to a commit, reads its root `package.json`, and samples at most 30 small files from `src/`, `app/`, `pages/`, `lib/`, `components/`, plus root Next/ESLint config. An optional bump list selects dependencies. Private repositories, branch URLs and repositories without a root manifest are unsupported. Raw reads are pinned to a commit SHA, not a tree SHA.
+The original release fetcher, exact quote checker, matching engine, request limits, traces and honest recording mechanism remain. Archived non-BCH recordings remain for regression tests, but are not displayed as BCH examples. No paid model run was performed and no fabricated BCH dependency report was added.
 
-With pasted input, add up to five source files using the editor, `+` button or upload button. Each file is limited to 20 KB, each manifest to 50 KB and the streamed JSON request to 240 KB. Limits count UTF-8 bytes. Repository samples are individually capped at 20 KB; larger files and generated/vendor directories are excluded.
+## Checks
 
-Version ranges resolve to the **highest currently published matching version**. This is not a lockfile parser: use exact installed versions for reproducibility. Stable versions in `(resolved from, resolved to]` form the review interval. An explicit prerelease target is resolved, but GitHub prerelease notes may be absent. Downgrades and unchanged resolved targets are rejected.
-
-## How GLM is used
-
-```mermaid
-flowchart LR
-  I[Version bumps + source] --> N[npm version resolution]
-  N --> R[GitHub releases + changelogs + pinned migration notes]
-  R --> G[GLM structured extraction]
-  G --> C[Exact quote checker]
-  C --> M[Deterministic code grep]
-  M --> F[GLM grounded fix for exact hits]
-  F --> O[Ranked report + receipts + trace]
-```
-
-GLM extracts `{api, change, migration, sourceVersion, quote}` for up to six changes per dependency. It receives bounded public notes and at most 180 source identifiers to prioritize relevant APIs. Source files themselves are not sent wholesale. Matching snippets for exact hits are sent in a later request for concise fixes grounded in the cited migration text. Instructions treat notes and code as untrusted data.
-
-The deterministic citation checker requires a nontrivial verbatim substring **in a note for the same version**. Invented quotes, normalized whitespace, wrong versions and empty evidence are dropped. A separate deterministic filter excludes deprecation-only claims while retaining removal of previously deprecated APIs. Every receipt refers back to the original fetched text in the downloadable report. The checker verifies provenance, **not semantic entailment**: GLM can still misinterpret a real quote. Fix grounding requires a quoted substring from the migration or evidence; failed fix calls fall back to the extracted migration and show a warning.
-
-Code matching and ranking do not use an LLM:
-
-| Verdict | Meaning |
-| --- | --- |
-| **Will break** | A bounded, case-sensitive API token occurs in the supplied code. This is a review priority, not proof of execution or breakage. |
-| **Might break** | Only a fuzzy match exists: comment/string, case variant, substring, or dotted-token member. |
-| **Safe in sample** | No matching token in these files. It does not certify the dependency or whole repository as safe. |
-
-Comments and normal string literals are treated as fuzzy; JSON config keys can be exact. Imports count as usage. Lexical matching cannot resolve aliases, semantic context, dynamic access, template interpolation or behavior changes without API names. Hits are capped at 100 per claim.
-
-Release collection is deliberately bounded: major milestone tags and the target version, up to 100 recent releases, root/package changelogs, and official migration-note adapters for Next 16, Router 6 and ESLint 9. Monorepo tag formats are supported. GitHub's unauthenticated quota, missing notes, excerpted long notes and more than seven major milestones can leave gaps. Coverage shows reviewed version counts and warnings; no-note results never imply compatibility. The model context is capped at 96,000 characters, 50,000 per migration guide and 8,000 per other note. Original notes are retained for receipts.
-
-## API
-
-`POST /api/analyze`, `Content-Type: application/json`:
-
-```json
-{
-  "bumps": [{ "name": "react-router-dom", "from": "5.3.4", "to": "6.22.0" }],
-  "files": [{ "path": "src/App.tsx", "content": "import { Switch } from 'react-router-dom';" }]
-}
-```
-
-Alternative fields: `packageJson` and optional `targetPackageJson` (JSON text strings), or `repoUrl` plus optional `bumps`. Demo requests must use an unmodified entry from `src/lib/examples.ts`, including `exampleId`. A successful response has `mode`, `dependencies`, `findings`, `notes`, `files`, `coverage`, `warnings`, `trace`, `droppedCitations` and timing metadata. Demo responses add original input and recording timestamp. Error responses contain a safe message and any available trace.
-
-Invalid inputs return 400, oversized uploads 413, non-JSON requests 415, edited demo requests 422, rate limits 429 (with `Retry-After`), and upstream errors 502/503. Source fetches allow only HTTPS npm, GitHub API and raw GitHub hosts, including redirect targets. Provider response bodies, authorization headers, stack traces and environment values are not exposed.
-
-## Rate limits and operational boundaries
-
-The limiter allows **5 analyses per IP per rolling hour and 100 per UTC day** across all IPs, including demos. The inherited in-memory implementation enforces this for a single process. **A multi-instance/serverless deployment needs shared storage for a hard global cap.** Configure both optional Upstash variables in `.env.example` to use atomic Redis limits across instances; configured Redis failures fail closed. No Upstash account or deployment has been created.
-
-Vercel's trusted forwarded-IP header is preferred on Vercel. On another host, your reverse proxy must overwrite `X-Forwarded-For`/`X-Real-IP`; directly exposed clients can otherwise spoof an IP. Without a trusted IP header, requests share the `unknown` bucket. Public unauthenticated GitHub quotas are separate from app limits.
-
-Public registry/release data uses bounded process-memory TTL caches. Source files are never placed in those caches, persisted to disk, or sent to Next's fetch cache. API responses are `no-store`. Reports are retained in the browser until refresh and downloaded only on request. Explicit recording is the exception: it saves the supplied sample sources, public notes and generated report to JSON. A server operator should use non-sensitive samples when re-recording.
-
-## Recordings and reproducibility
-
-The three JSON files in `src/recordings/` were generated by **running the real agent on this box with GLM-5.3**, not by editing model outputs. They include original sample input, original timestamp, all fetched notes, citations and actual request metrics. `scripts/record.ts` requires a key, refuses an empty/no-model run and checks all citations before writing. It can record all examples or selected IDs:
-
-```bash
-# Load your local env file without echoing it (Node 20.19+).
-node --env-file=.env.local --import tsx scripts/record.ts
-node --env-file=.env.local --import tsx scripts/record.ts router
-# Or, if GLM_API_KEY is already set in your shell:
-npx tsx scripts/record.ts
-```
-
-Only intended recording JSON is versionable; keys, `.env*` (except the empty example), secrets, logs, browser artifacts and the two visual references are ignored. Re-recording uses paid model inference and public source requests. Failure traces go into ignored `artifacts/`; a failed run does not replace a valid recording. The two reference images are not shipped in `public/`.
-
-## Verification
-
-```bash
-npm test
+```sh
 npm run typecheck
 npm run lint
+npm test
 npm run build
-npm start
+npm run test:wizard
 ```
 
-Vitest covers semver diffing, markdown/release extraction, exact citations, grep, ranking, caps, cache behavior, redirect restrictions, repository commit pinning, local/shared rate limiting, safe HTTP errors and offline replay of every recording.
+`test:wizard` runs the real dapp, core and fake-wallet packages against an in-memory localhost Nostr relay. A runtime testnet HD seed is stored only in a mode-0600 file under `/tmp` and removed on completion. It verifies encrypted pairing, receive-key derivation, wire serialization, signing and the BCH 2026 VM. The fake-UTXO transaction is written only to ignored `artifacts/`, explicitly marked offline.
 
-For browser checks, run a demo-mode server on port 3000 in another terminal:
+For an optional chipnet connectivity attempt: `npm run test:wizard -- --chipnet`. It has no mainnet branch and broadcasts only if its fresh runtime address has actual spendable chipnet funds. The faucet attempt and current limitations are documented in NOTES.
 
-```bash
-PLAYWRIGHT_BROWSERS_PATH=./.playwright npx playwright install chromium
-npm run test:browser
-```
+For UI checks, run `npm start` separately, then `npm run test:browser`. Install the matching Playwright Chromium first if necessary (`PLAYWRIGHT_BROWSERS_PATH=./.playwright npx playwright install chromium`). The command first creates its offline transaction fixture with the fake-wallet test, then checks all contracts against the real server, exact evidence, JSON download, invalid inputs, mainnet acknowledgement, QR cancellation, accessibility, responsive layouts and locally mocked verification match/mismatch. QR pairing material is never captured in screenshots or logs.
 
-This checks sample runs, receipts, Escape/focus behavior, trace expansion, JSON download, edited-input rejection, no runtime errors, axe WCAG AA checks, and layouts at 320/390/768/1440 px. Screenshots and the downloaded report are saved in ignored `artifacts/`. `BROWSER_BASE_URL` can select another local server.
-
-## Project map and credits
-
-| Location | Purpose |
-| --- | --- |
-| `src/lib/agent.ts` | Real agent orchestration and coverage |
-| `src/lib/sources.ts`, `fetcher.ts` | Public sources, bounded transport and trace |
-| `src/lib/glm.ts` | OpenAI-compatible JSON extraction and grounded fixes |
-| `src/lib/citations.ts`, `matcher.ts`, `versions.ts` | Deterministic verification |
-| `src/lib/http.ts`, `input.ts`, `rate-limit.ts`, `shared-limit.ts` | API boundaries and quotas |
-| `src/lib/demo.ts`, `src/recordings/` | Honest offline replay |
-| `src/components/` | CRT terminal, thermal receipts and trace disclosure |
-| `demo-script.md` | A 6½-minute narrated walkthrough |
-
-The package versions, Vercel install config, Vitest setup, TTL cache, rate limiter, streamed HTTP reader, trace disclosure and native receipt dialog patterns are reused/adapted from the sibling `qloo` project as requested. Vitest was upgraded to 4.1.12 after npm reported vulnerabilities in its inherited 3.x dependency tree; the test configuration pattern is retained. Next.js/React versions remain aligned with the reference project.
-
-The night sky, moon, snow peaks, ruined columns, terminal bezel, scanlines and radar are original CSS/SVG, with reduced-motion support. VT323 and IBM Plex Mono are self-hosted; their OFL licenses are in `public/fonts/`. App source is MIT; upstream release-note text and fonts retain their respective licenses.
+MIT application code. Upstream specifications and bundled fonts retain their own licenses. WizardConnect is LGPL-3.0-or-later; dependency modifications are distributed as patches. No push or deployment is part of these commands.
