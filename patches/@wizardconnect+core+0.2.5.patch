@@ -1,0 +1,40 @@
+diff --git a/node_modules/@wizardconnect/core/dist/log.js b/node_modules/@wizardconnect/core/dist/log.js
+index 0ce7899..17f9606 100644
+--- a/node_modules/@wizardconnect/core/dist/log.js
++++ b/node_modules/@wizardconnect/core/dist/log.js
+@@ -11,16 +11,8 @@ export var Scope;
+     Scope["Network"] = "network";
+     Scope["Misc"] = "misc";
+ })(Scope || (Scope = {}));
+-export function debug(scope, ...args) {
+-    console.log(`[${scope}]`, ...args);
+-}
+-export function info(scope, ...args) {
+-    console.info(`[${scope}]`, ...args);
+-}
+-export function warn(scope, ...args) {
+-    console.warn(`[${scope}]`, ...args);
+-}
+-export function error(scope, ...args) {
+-    console.error(`[${scope}]`, ...args);
+-}
+-//# sourceMappingURL=log.js.map
+\ No newline at end of file
++// Upgrade Oracle: protocol/session material must never reach the console.
++export function debug() {}
++export function info() {}
++export function warn() {}
++export function error() {}
+diff --git a/node_modules/@wizardconnect/core/dist/relay-client.js b/node_modules/@wizardconnect/core/dist/relay-client.js
+index 7d37b5d..e93f75a 100644
+--- a/node_modules/@wizardconnect/core/dist/relay-client.js
++++ b/node_modules/@wizardconnect/core/dist/relay-client.js
+@@ -52,7 +52,7 @@ export class RelayClient extends EventEmitter {
+     constructor(config, pool) {
+         super();
+         this.config = {
+-            logNetworkActivity: true,
++            logNetworkActivity: false,
+             ...config,
+         };
+         this.pool = pool ?? new SimplePool({ enablePing: true });

@@ -12,7 +12,7 @@ const publicKey = secp256k1.derivePublicKeyCompressed(privateKey);
 if (typeof publicKey === "string") throw new Error("Test key generation failed.");
 const address = receiveAddress(publicKey, "chipnet");
 const lockingBytecode = addressBytecode(address, "chipnet");
-const coin = (vout = 0, valueSatoshis = 12_000n, id = "12"): SealUtxo => ({ txid: id.repeat(32), vout, valueSatoshis, lockingBytecode });
+const coin = (vout = 0, valueSatoshis = 12_000n, id?: string): SealUtxo => ({ txid: id ? id.repeat(32) : Array.from({ length: 32 }, (_, i) => i.toString(16).padStart(2, "0")).join(""), vout, valueSatoshis, lockingBytecode });
 const planFor = (utxos = [coin()]) => buildSealPlan({ utxos, address, network: "chipnet", commitment: commitmentForReport(report) });
 function sign(plan: SealPlan, sighash = 0x61) {
   const tx = structuredClone(plan.transaction);
@@ -52,11 +52,13 @@ describe("immutable NFT genesis and signing", () => {
   it("builds and signs a real transaction which passes the BCH 2026 VM", () => {
     const plan = planFor();
     const hex = sign(plan);
+    expect(hex.slice(10, 74)).toBe(binToHex(hexToBin(coin().txid).reverse()));
     expect(validateSignedTransaction(plan, hex)).toMatch(/^[a-f0-9]{64}$/);
     expect(createVirtualMachineBch2026().verify({ transaction: decodeRawTransaction(hex), sourceOutputs: plan.sourceOutputs })).toBe(true);
     expect(findSeals(hex)[0]).toMatchObject({ category: coin().txid, reportHash: reportHash(report), flags: 2 });
     expect(plan.transaction.outputs[0].token?.nft?.capability).toBe("none");
     expect(plan.transaction.outputs[0].token?.amount).toBe(0n);
+    expect(() => JSON.stringify(wizardSignRequest(plan))).not.toThrow();
     expect(wizardSignRequest(plan)).toMatchObject({ inputPaths: [[0, "receive", 0]], transaction: { broadcast: false } });
   });
   it("finds the vout-0 input and funds a genesis with multiple plain UTXOs", () => {

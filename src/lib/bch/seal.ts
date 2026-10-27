@@ -6,6 +6,7 @@ import {
   createVirtualMachineBch2026,
   type Transaction, type Output,
 } from "@bitauth/libauth";
+import { sourceOutputToRelay } from "@wizardconnect/core/hdwalletv1-serialize";
 import type { SignTransactionRequest } from "@wizardconnect/core";
 import type { BchNetwork, DoctorReport } from "./types";
 
@@ -151,8 +152,10 @@ export function buildSealPlan(options: {
 export function wizardSignRequest(plan: SealPlan): Pick<SignTransactionRequest, "transaction" | "inputPaths"> {
   return {
     transaction: {
-      transaction: plan.transaction,
-      sourceOutputs: plan.sourceOutputs.map((output, index) => ({ ...plan.transaction.inputs[index], ...output })),
+      transaction: binToHex(encodeTransaction(plan.transaction)),
+      // The SDK protocol type describes native libauth data, but the relay
+      // calls JSON.stringify directly. Use its documented wire serializer.
+      sourceOutputs: plan.sourceOutputs.map((output, index) => sourceOutputToRelay({ ...plan.transaction.inputs[index], ...output })) as unknown as SignTransactionRequest["transaction"]["sourceOutputs"],
       broadcast: false,
       userPrompt: `${plan.network.toUpperCase()}: ${plan.kind === "seal" ? "Seal Contract Doctor report" : "Prepare vout-0 self-send"}. Network fee ${plan.feeSatoshis} sat; service fee ${plan.serviceFeeSatoshis} sat. Sign ALL|FORKID|UTXOS (0x61).`,
     },

@@ -1,0 +1,49 @@
+diff --git a/node_modules/@wizardconnect/dapp/dist/dapp-connection-manager.js b/node_modules/@wizardconnect/dapp/dist/dapp-connection-manager.js
+index 1c2c682..e3c04ab 100644
+--- a/node_modules/@wizardconnect/dapp/dist/dapp-connection-manager.js
++++ b/node_modules/@wizardconnect/dapp/dist/dapp-connection-manager.js
+@@ -309,7 +309,7 @@ export class DappConnectionManager extends EventEmitter {
+             if (!this.conn)
+                 return;
+             await this.pushDappReady();
+-        })().catch((e) => console.error("[wizardconnect/dapp] Error in onConnected:", e));
++        })().catch((e) => console.error("[wizardconnect/dapp] Connection failed"));
+     }
+     startPingInterval() {
+         this.stopPingInterval();
+@@ -370,7 +370,7 @@ export class DappConnectionManager extends EventEmitter {
+         this.emit("messagereceived", msg);
+         switch (msg.action) {
+             case RelayMsgAction.WalletReady:
+-                this.handleWalletReady(msg).catch((e) => console.error("[wizardconnect/dapp] Error handling wallet_ready:", e));
++                this.handleWalletReady(msg).catch((e) => console.error("[wizardconnect/dapp] Wallet handshake failed"));
+                 break;
+             case RelayMsgAction.SignTransactionResponse:
+                 this.handleSignTransactionResponse(msg);
+@@ -434,7 +434,7 @@ export class DappConnectionManager extends EventEmitter {
+         // Extract and validate protocol-specific session data
+         const sessionData = msg.session[agreed];
+         if (!isHdwalletv1Session(sessionData)) {
+-            console.error("[wizardconnect/dapp] Invalid hdwalletv1 session data:", sessionData);
++            console.error("[wizardconnect/dapp] Invalid hdwalletv1 session");
+             return;
+         }
+         // Transport-level capability: if the wallet advertises chunking, enable
+@@ -450,7 +450,7 @@ export class DappConnectionManager extends EventEmitter {
+         for (const pathInfo of sessionData.paths) {
+             const decoded = decodeHdPublicKey(pathInfo.xpub);
+             if (typeof decoded === "string") {
+-                console.warn("[wizardconnect/dapp] Bad xpub for path", pathInfo.name, decoded);
++                console.warn("[wizardconnect/dapp] Invalid wallet public-key data");
+                 continue;
+             }
+             const ci = childIndexOfPathName(pathInfo.name);
+@@ -461,7 +461,7 @@ export class DappConnectionManager extends EventEmitter {
+         // Send dapp_ready first so the wallet's session state is confirmed before
+         // any sign requests arrive — await ensures correct ordering on the wire.
+         if (!msg.dapp_discovered) {
+-            await this.pushDappReady().catch((e) => console.error("[wizardconnect/dapp] Error pushing dapp_ready:", e));
++            await this.pushDappReady().catch((e) => console.error("[wizardconnect/dapp] Handshake response failed"));
+         }
+         this.emit("walletready", msg);
+         // Re-send any pending sign requests with a fresh timestamp so the wallet
