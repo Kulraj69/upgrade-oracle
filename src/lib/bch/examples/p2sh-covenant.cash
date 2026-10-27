@@ -1,0 +1,11 @@
+pragma cashscript ^0.14.0;
+
+// Demonstrates repeated output construction, not a production payout policy.
+contract OutputCovenant(bytes32 scriptHash) {
+    function distribute() {
+        bytes target = new LockingBytecodeP2SH32(scriptHash);
+        require(tx.outputs[0].lockingBytecode == target);
+        require(tx.outputs[1].lockingBytecode == target);
+        require(tx.outputs[2].lockingBytecode == target);
+    }
+}

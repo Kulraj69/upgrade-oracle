@@ -1,0 +1,102 @@
+{
+  "schema": "upgrade-oracle/bch-report-v1",
+  "rulesetVersion": 1,
+  "contract": {
+    "file": "recurring-payment.cash",
+    "source": "pragma cashscript ^0.14.0;\n\n// Demonstration only: review authorization and economics before deployment.\ncontract RecurringPayment(bytes20 recipient, int interval, int payment) {\n    function pay() {\n        require(this.age >= interval);\n        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(recipient));\n        require(tx.outputs[0].value >= payment);\n        require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);\n        require(tx.outputs[1].value >= tx.inputs[this.activeInputIndex].value - payment - 1000);\n    }\n}\n",
+    "name": "RecurringPayment",
+    "compiler": "cashc 0.14.0",
+    "bytecode": "7cb27500cd0376a9147b7e0288ac7e8800cc78a26951cdc0c78851ccc0c67b9402e80394a2",
+    "bytecodeBytes": 37,
+    "opcount": 23,
+    "instructionCount": 30,
+    "constructorInputs": [
+      {
+        "name": "recipient",
+        "type": "bytes20"
+      },
+      {
+        "name": "interval",
+        "type": "int"
+      },
+      {
+        "name": "payment",
+        "type": "int"
+      }
+    ],
+    "warnings": []
+  },
+  "findings": [
+    {
+      "id": "faster-blocks-timelocks",
+      "severity": "watch",
+      "title": "2027 watch · timelock assumptions",
+      "matches": [
+        {
+          "file": "recurring-payment.cash",
+          "line": 6,
+          "snippet": "require(this.age >= interval);"
+        }
+      ],
+      "evidence": {
+        "sourceId": "faster",
+        "quote": "Height-mode `nLocktime` and `nSequence` are normalized to the 10-minute scale: values are compared against ticks, not raw height.",
+        "url": "https://gitlab.com/0353F40E/fablous/-/blob/7460b71b58cc1fe4080a43882f9c682fefe4b1ba/readme.md",
+        "fetchedAt": "2026-10-27T17:26:11.293664+00:00",
+        "sha256": "ca984d8a9467cf26da04564580013fb5babef4db84014678d6fb2255e7ae28b9"
+      },
+      "status": "Proposed · not locked in",
+      "fix": "Review the matched lock fields and the app code that constructs them against this proposed specification. Do not shorten existing delays based on a faster-block assumption. Recheck proposal status before deployment."
+    }
+  ],
+  "sources": [
+    {
+      "id": "p2s",
+      "url": "https://github.com/bitjson/bch-p2s/blob/2bcfa82b8aeb1f158398ae5532a94c8c5dcf870a/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.169380+00:00",
+      "sha256": "31cd2fdb57801d182187ae62576091648c0aaabf4694bd2eb83ea0ee161c7acd"
+    },
+    {
+      "id": "loops",
+      "url": "https://github.com/bitjson/bch-loops/blob/bd80d6e9965d5aa84437273a488213e04a3cfe9a/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.325546+00:00",
+      "sha256": "f4bcfc998a792ea4fa3202c476b287910ec656e6c42d47921b56a7cf7ebfc2f2"
+    },
+    {
+      "id": "functions",
+      "url": "https://github.com/bitjson/bch-functions/blob/e36e9bd99dc8efb6417bf645aa9d5f37fb9824c7/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.459650+00:00",
+      "sha256": "c6a5056f3f7f85c26758beceb5affdf176c59c291d5dd32368d869ee4a64a4a6"
+    },
+    {
+      "id": "bitwise",
+      "url": "https://github.com/bitjson/bch-bitwise/blob/c6850c9006b75a74219239ce61bdacf776787228/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.589794+00:00",
+      "sha256": "7a41098bcd4b24749c029833fb048226c988a4ca0d0395db3931b2c70eb26d22"
+    },
+    {
+      "id": "upgrade-2026",
+      "url": "https://upgradespecs.bitcoincashnode.org/2026-05-15-upgrade/",
+      "fetchedAt": "2026-10-27T17:25:27.590141+00:00",
+      "sha256": "195dc5e578b2790c16cc1c79b148a7d3c0128be3ba646975a585b9b7b78e5d82"
+    },
+    {
+      "id": "cashscript-0.14.0",
+      "url": "https://github.com/CashScript/cashscript/releases/tag/v0.14.0",
+      "fetchedAt": "2026-10-27T17:25:27.590363+00:00",
+      "sha256": "f3a901aa496c163d4a9355ca2a5694cf57eea21bb188fd4bbad260ce84e2eead"
+    },
+    {
+      "id": "faster",
+      "url": "https://gitlab.com/0353F40E/fablous/-/blob/7460b71b58cc1fe4080a43882f9c682fefe4b1ba/readme.md",
+      "fetchedAt": "2026-10-27T17:26:11.293664+00:00",
+      "sha256": "ca984d8a9467cf26da04564580013fb5babef4db84014678d6fb2255e7ae28b9"
+    },
+    {
+      "id": "sighash",
+      "url": "https://gitlab.com/0353F40E/sighash/-/blob/e7e4fb7d8e4304e35f2fa083c2275c8d2706caf5/readme.md",
+      "fetchedAt": "2026-10-27T17:26:11.527872+00:00",
+      "sha256": "229f6e5f3bdea7453a11c0039b93c72a3d162c97c6468ebddcaf9cf4f048de08"
+    }
+  ]
+}

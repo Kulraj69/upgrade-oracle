@@ -1,0 +1,156 @@
+{
+  "schema": "upgrade-oracle/bch-report-v1",
+  "rulesetVersion": 1,
+  "contract": {
+    "file": "p2sh-covenant.cash",
+    "source": "pragma cashscript ^0.14.0;\n\n// Demonstrates repeated output construction, not a production payout policy.\ncontract OutputCovenant(bytes32 scriptHash) {\n    function distribute() {\n        bytes target = new LockingBytecodeP2SH32(scriptHash);\n        require(tx.outputs[0].lockingBytecode == target);\n        require(tx.outputs[1].lockingBytecode == target);\n        require(tx.outputs[2].lockingBytecode == target);\n    }\n}\n",
+    "name": "OutputCovenant",
+    "compiler": "cashc 0.14.0",
+    "bytecode": "02aa207c7e01877e00cd788851cd788852cd87",
+    "bytecodeBytes": 19,
+    "opcount": 11,
+    "instructionCount": 16,
+    "constructorInputs": [
+      {
+        "name": "scriptHash",
+        "type": "bytes32"
+      }
+    ],
+    "warnings": []
+  },
+  "findings": [
+    {
+      "id": "layla-functions",
+      "severity": "opportunity",
+      "title": "Review reusable checks",
+      "matches": [
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 7,
+          "snippet": "require(tx.outputs[0].lockingBytecode == target);"
+        },
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 8,
+          "snippet": "require(tx.outputs[1].lockingBytecode == target);"
+        },
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 9,
+          "snippet": "require(tx.outputs[2].lockingBytecode == target);"
+        }
+      ],
+      "evidence": {
+        "sourceId": "functions",
+        "quote": "This proposal introduces the `OP_DEFINE` and `OP_INVOKE` opcodes, enabling Bitcoin Cash contract bytecode to be factored into reusable functions.",
+        "url": "https://github.com/bitjson/bch-functions/blob/e36e9bd99dc8efb6417bf645aa9d5f37fb9824c7/readme.md",
+        "fetchedAt": "2026-10-27T17:25:27.459650+00:00",
+        "sha256": "c6a5056f3f7f85c26758beceb5affdf176c59c291d5dd32368d869ee4a64a4a6"
+      },
+      "status": "May 2026 specification",
+      "fix": "Consider a top-level reusable function for the repeated checks. cashc 0.14.0 function syntax is compile-tested; its optimizer may inline a small function. Inspect bytecode before claiming an OP_DEFINE/OP_INVOKE saving."
+    },
+    {
+      "id": "layla-loops",
+      "severity": "opportunity",
+      "title": "Review unrolled repetition",
+      "matches": [
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 7,
+          "snippet": "require(tx.outputs[0].lockingBytecode == target);"
+        },
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 8,
+          "snippet": "require(tx.outputs[1].lockingBytecode == target);"
+        },
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 9,
+          "snippet": "require(tx.outputs[2].lockingBytecode == target);"
+        }
+      ],
+      "evidence": {
+        "sourceId": "loops",
+        "quote": "This proposal adds two new BCH virtual machine (VM) operations, `OP_BEGIN` and `OP_UNTIL`, enabling a variety of loop constructions in BCH contracts without increasing the processing or memory requirements of the VM.",
+        "url": "https://github.com/bitjson/bch-loops/blob/bd80d6e9965d5aa84437273a488213e04a3cfe9a/readme.md",
+        "fetchedAt": "2026-10-27T17:25:27.325546+00:00",
+        "sha256": "f4bcfc998a792ea4fa3202c476b287910ec656e6c42d47921b56a7cf7ebfc2f2"
+      },
+      "status": "May 2026 specification",
+      "fix": "Try a bounded CashScript for loop around the repeated checks. cashc 0.14.0 loop support is compile-tested. Compare compiled size and execution cost; fewer source lines alone do not prove a saving."
+    },
+    {
+      "id": "layla-p2s",
+      "severity": "opportunity",
+      "title": "Review P2SH output construction",
+      "matches": [
+        {
+          "file": "p2sh-covenant.cash",
+          "line": 6,
+          "snippet": "bytes target = new LockingBytecodeP2SH32(scriptHash);"
+        }
+      ],
+      "evidence": {
+        "sourceId": "p2s",
+        "quote": "This reduces the overhead of most covenant systems by at least 34 bytes per output.",
+        "url": "https://github.com/bitjson/bch-p2s/blob/2bcfa82b8aeb1f158398ae5532a94c8c5dcf870a/readme.md",
+        "fetchedAt": "2026-10-27T17:25:27.169380+00:00",
+        "sha256": "31cd2fdb57801d182187ae62576091648c0aaabf4694bd2eb83ea0ee161c7acd"
+      },
+      "status": "May 2026 specification",
+      "fix": "Review replacing the matched P2SH construction with a direct script output. Compare fully instantiated bytecode and spending paths before changing the covenant; this heuristic does not calculate your savings."
+    }
+  ],
+  "sources": [
+    {
+      "id": "p2s",
+      "url": "https://github.com/bitjson/bch-p2s/blob/2bcfa82b8aeb1f158398ae5532a94c8c5dcf870a/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.169380+00:00",
+      "sha256": "31cd2fdb57801d182187ae62576091648c0aaabf4694bd2eb83ea0ee161c7acd"
+    },
+    {
+      "id": "loops",
+      "url": "https://github.com/bitjson/bch-loops/blob/bd80d6e9965d5aa84437273a488213e04a3cfe9a/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.325546+00:00",
+      "sha256": "f4bcfc998a792ea4fa3202c476b287910ec656e6c42d47921b56a7cf7ebfc2f2"
+    },
+    {
+      "id": "functions",
+      "url": "https://github.com/bitjson/bch-functions/blob/e36e9bd99dc8efb6417bf645aa9d5f37fb9824c7/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.459650+00:00",
+      "sha256": "c6a5056f3f7f85c26758beceb5affdf176c59c291d5dd32368d869ee4a64a4a6"
+    },
+    {
+      "id": "bitwise",
+      "url": "https://github.com/bitjson/bch-bitwise/blob/c6850c9006b75a74219239ce61bdacf776787228/readme.md",
+      "fetchedAt": "2026-10-27T17:25:27.589794+00:00",
+      "sha256": "7a41098bcd4b24749c029833fb048226c988a4ca0d0395db3931b2c70eb26d22"
+    },
+    {
+      "id": "upgrade-2026",
+      "url": "https://upgradespecs.bitcoincashnode.org/2026-05-15-upgrade/",
+      "fetchedAt": "2026-10-27T17:25:27.590141+00:00",
+      "sha256": "195dc5e578b2790c16cc1c79b148a7d3c0128be3ba646975a585b9b7b78e5d82"
+    },
+    {
+      "id": "cashscript-0.14.0",
+      "url": "https://github.com/CashScript/cashscript/releases/tag/v0.14.0",
+      "fetchedAt": "2026-10-27T17:25:27.590363+00:00",
+      "sha256": "f3a901aa496c163d4a9355ca2a5694cf57eea21bb188fd4bbad260ce84e2eead"
+    },
+    {
+      "id": "faster",
+      "url": "https://gitlab.com/0353F40E/fablous/-/blob/7460b71b58cc1fe4080a43882f9c682fefe4b1ba/readme.md",
+      "fetchedAt": "2026-10-27T17:26:11.293664+00:00",
+      "sha256": "ca984d8a9467cf26da04564580013fb5babef4db84014678d6fb2255e7ae28b9"
+    },
+    {
+      "id": "sighash",
+      "url": "https://gitlab.com/0353F40E/sighash/-/blob/e7e4fb7d8e4304e35f2fa083c2275c8d2706caf5/readme.md",
+      "fetchedAt": "2026-10-27T17:26:11.527872+00:00",
+      "sha256": "229f6e5f3bdea7453a11c0039b93c72a3d162c97c6468ebddcaf9cf4f048de08"
+    }
+  ]
+}

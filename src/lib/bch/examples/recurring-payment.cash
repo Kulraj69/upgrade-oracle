@@ -1,0 +1,12 @@
+pragma cashscript ^0.14.0;
+
+// Demonstration only: review authorization and economics before deployment.
+contract RecurringPayment(bytes20 recipient, int interval, int payment) {
+    function pay() {
+        require(this.age >= interval);
+        require(tx.outputs[0].lockingBytecode == new LockingBytecodeP2PKH(recipient));
+        require(tx.outputs[0].value >= payment);
+        require(tx.outputs[1].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);
+        require(tx.outputs[1].value >= tx.inputs[this.activeInputIndex].value - payment - 1000);
+    }
+}

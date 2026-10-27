@@ -1,0 +1,12 @@
+pragma cashscript ^0.14.0;
+
+// Demonstrates token introspection; intentionally omits an owner withdrawal path.
+contract TokenVault(bytes category) {
+    function preserve() {
+        require(tx.inputs[this.activeInputIndex].tokenCategory == category);
+        require(tx.outputs[0].tokenCategory == category);
+        require(tx.outputs[0].nftCommitment == tx.inputs[this.activeInputIndex].nftCommitment);
+        require(tx.outputs[0].lockingBytecode == tx.inputs[this.activeInputIndex].lockingBytecode);
+        require(tx.outputs[0].value >= tx.inputs[this.activeInputIndex].value - 1000);
+    }
+}
