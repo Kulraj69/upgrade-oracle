@@ -1,19 +1,31 @@
-# Upgrade Oracle — DoraHacks Z.AI General Bounty (GLM agents)
+# Upgrade Oracle · Bitcoin Cash edition — BCH BLAZE 2026 plan
 
-Deadline: not found (DoraHacks page behind captcha). Kulraj must check in a browser. Do NOT submit.
+Rules digest: /workspace/devpost/bch/RULES.md. Submissions Nov 14 – Nov 22, 14:00 UTC (7:30 PM IST).
 
-## Idea
-Paste your package.json (or a single dependency bump like `next 14 -> 16`) and a few of your source files. A GLM agent fetches the real release notes/changelogs (npm registry + GitHub releases), finds the breaking changes, greps your pasted code for each affected API, and returns a ranked "will break / might break / safe" list with the exact line and the fix. Every claim links to the changelog line it came from (receipts).
+## Track
+**Mainnet Track** ($3,500 / $1,500 / $750 + BLISS tickets). Auto-entered into **Community Choice** ($750) by listing a CashTokens address. Optional later: **Migrate to XO** bounty (1 BCH x 5) — needs ~500 words of feedback Sir writes himself, so not planned by default.
 
-## Why it scores
-Bounty asks for production-ready agents on GLM. This is a real chore every dev has, it is tool-using (fetch, search, grep, cite), and the demo is visual and short.
+## The idea in one line
+Paste a CashScript contract. The Oracle tells you what the May 2026 "Layla" upgrade lets you shrink, what the 2027 proposals (Faster Blocks, OP_SIGHASH, EC ops) could touch, every claim quoted from the CHIP text, and then you **seal** the report on chain: your own wallet (via WizardConnect) mints an NFT whose 128-byte commitment holds the report hash and the contract bytecode hash. Anyone can verify a seal from a link.
 
-## Build
-- Next.js 16 app, dreamcore UI copied from /workspace/devpost/qloo (night scene, receipts drawer, trace panel showing agent steps).
-- Agent loop server-side: OpenAI-compatible client pointed at GLM (Nebius Token Factory `zai-org/GLM-5.3` on the box; env `GLM_BASE_URL`, `GLM_API_KEY`, `GLM_MODEL`). Tools: npm registry lookup, GitHub releases fetch, code grep over pasted files.
-- Public Vercel deploy runs in demo mode with recorded real runs (no key on Vercel, so no surprise billing). Live mode when env key is present.
-- Tests (vitest) for version-range diffing, changelog section extraction, grep matcher, citation checker. MIT LICENSE. README with "do X - see Y" steps.
-- Demo video script (5–10 min required) in demo-script.md.
+Why it's fun: an oracle that reads protocol upgrades the way devs read changelogs, and stamps a verdict onto the chain. Why it fits judges: uses BCH scripting (CashTokens NFT commitments, Layla's 128-byte commitments), shows contracts how to use loops/functions/P2S, and gives the Nov 15 2026 lock-in a tool the ecosystem needs. Business: pay-per-seal fee output in the same tx; wallets/explorers can show "checked against Layla" badges; audit firms can white-label.
+
+## What exists (reuse)
+Next.js 16 app, night-scene UI, changelog fetcher, quote checker (every LLM/claim quote must exactly match source), deterministic grep matcher, trace panel, recorded demo mode, vitest.
+
+## Build (now = scaffolding; visible polish lands Nov 14–22)
+1. **Contract Doctor** (deterministic, no API key): CashScript source in → compile with `cashc` (server), bytecode size/opcount → rule engine. Each rule cites exact text from pinned CHIP/spec sources (upgradespecs.bitcoincashnode.org, CHIP repos, CashScript release notes). Rules only claim what the sources say. Three demo contracts.
+2. **Dependency mode** kept: cashscript / libauth / mainnet-js / electrum-cash version bumps through the existing changelog engine.
+3. **Seal** via WizardConnect (`@wizardconnect/react`/`dapp`): connect wallet by QR, derive address, fetch UTXOs (electrum, chipnet default), build tx = NFT genesis (commitment = sha256(report) ‖ sha256(bytecode) ‖ ruleset version ‖ verdict flags, ≤128 B) to user + optional fee output + change; wallet signs; broadcast; explorer link.
+4. **Verify** page `/seal/[txid]?net=chipnet`: fetch tx, decode commitment, recompute hash from report JSON.
+5. Network switch: chipnet default; mainnet selectable (user's own wallet signs). We never hold keys or funds.
+6. Stretch: `SealMinter.cash` covenant holding a minting baton (permissionless minting enforced by script).
+
+## Before submit — Sir's part
+- Attend Workshop 2 (Sat Oct 31) or 3 (Sat Nov 7), 19:30 IST, for roll call.
+- Post in t.me/bchblaze that the project is real.
+- Decide on one dust-sized mainnet seal from his own wallet (rule: a mainnet-transaction feature).
+- Yes before DoraHacks submit. Widget Factory slide deck (I draft).
 
 ## Odds (estimate)
-13 prizes on a $4K bounty; DoraHacks bounties tend to get few strong entries. Estimated 10–20% for any prize.
+Small hackathon (2025 edition had a few dozen BUIDLs). Any Mainnet prize: ~15–25% if all eligibility boxes are ticked; Community Choice depends on BLISS Belle holders, low.

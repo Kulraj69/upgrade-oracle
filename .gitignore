@@ -22,3 +22,4 @@ artifacts/
 .playwright/
 .npm-cache/
 test-results/
+.vercel
