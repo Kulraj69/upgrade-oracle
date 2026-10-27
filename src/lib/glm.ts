@@ -41,7 +41,7 @@ export function parseModelJson(value: string): unknown {
     }
   }
   throw new UpstreamError(
-    "GLM returned incomplete or invalid JSON. Please retry.",
+    "The model returned incomplete or invalid JSON. Please retry.",
   );
 }
 
@@ -52,7 +52,7 @@ export function parseChanges(value: unknown): BreakingChange[] {
     !("changes" in value) ||
     !Array.isArray(value.changes)
   )
-    throw new UpstreamError("GLM did not return a changes array.");
+    throw new UpstreamError("The model did not return a changes array.");
   return value.changes.slice(0, 18).flatMap((item) => {
     if (!item || typeof item !== "object") return [];
     const limits = {
@@ -90,12 +90,15 @@ export class GlmClient {
     private signal?: AbortSignal,
     private fetchImpl: typeof fetch = fetch,
   ) {
-    this.model = env.GLM_MODEL || "zai-org/GLM-5.3";
+    if (!env.GLM_MODEL || !env.GLM_BASE_URL)
+      throw new UpstreamError(
+        "Configure the optional model endpoint and model name.",
+        503,
+      );
+    this.model = env.GLM_MODEL;
     let base: URL;
     try {
-      base = new URL(
-        env.GLM_BASE_URL || "https://api.tokenfactory.nebius.com/v1",
-      );
+      base = new URL(env.GLM_BASE_URL);
     } catch {
       throw new UpstreamError("GLM_BASE_URL is not a valid URL.");
     }
@@ -168,7 +171,7 @@ export class GlmClient {
       if (!response.ok) {
         step.detail = `HTTP ${response.status}`;
         throw new UpstreamError(
-          `GLM request failed (HTTP ${response.status}). Check server configuration or try again.`,
+          `Model request failed (HTTP ${response.status}). Check server configuration or try again.`,
           502,
         );
       }
@@ -180,11 +183,11 @@ export class GlmClient {
       if (choice?.finish_reason === "length") {
         step.detail = `Completion limit: ${envelope.usage?.completion_tokens ?? "?"} tokens, ${choice.message?.content?.length ?? 0} visible characters`;
         throw new UpstreamError(
-          "GLM reached its response limit. Try a smaller upgrade interval.",
+          "The model reached its response limit. Try a smaller upgrade interval.",
         );
       }
       if (!choice?.message?.content)
-        throw new UpstreamError("GLM returned an empty response.");
+        throw new UpstreamError("The model returned an empty response.");
       step.detail = `${this.model} · ${envelope.usage?.prompt_tokens ?? "?"} input / ${envelope.usage?.completion_tokens ?? "?"} output tokens`;
       return parseModelJson(choice.message.content);
     } catch (error) {
@@ -193,7 +196,7 @@ export class GlmClient {
       throw error instanceof UpstreamError
         ? error
         : new UpstreamError(
-            "GLM could not complete this request. Please retry.",
+            "The model could not complete this request. Please retry.",
           );
     } finally {
       step.ms = Math.round(performance.now() - start);
@@ -207,7 +210,7 @@ export class GlmClient {
   ): Promise<BreakingChange[]> {
     return parseChanges(
       await this.json(
-        `GLM · extract ${dependency} changes`,
+        `Model · extract ${dependency} changes`,
         `You are an upgrade analyst. Extract up to 6 concrete breaking API changes from the provided release notes for ${dependency}. Output {"changes":[{"api":"one exact searchable API identifier or config key","change":"what breaks, one short sentence","migration":"one short sentence explicitly supported by the notes, or 'Review the cited release note; no migration is specified.'","sourceVersion":"exact version from supplied note","quote":"a single verbatim contiguous substring of that version's note, 16–400 characters"}]}. Favor public API removals, renames, changed signatures and configuration changes. Do not extract bug fixes, new features, deprecations that remain supported, or speculate. If no breaking change is evidenced, return {"changes":[]}. The quote must support the claim. Preserve markdown, punctuation and whitespace exactly. An api must be one code token, not prose, alternatives or a list. Keep the entire JSON under 2000 output tokens.`,
         {
           dependency,
@@ -224,7 +227,7 @@ export class GlmClient {
   async fixes(findings: Finding[]): Promise<Map<string, string>> {
     if (!findings.length) return new Map();
     const value = await this.json(
-      "GLM · propose grounded fixes",
+      "Model · propose grounded fixes",
       `Write a concise 1–2 line fix for each supplied finding. Use only its migration and quote. Do not add API names, commands or version requirements absent from that evidence. If the migration is unspecified, tell the developer to review the cited note. Return {"fixes":[{"id":"provided id","fix":"1–2 lines","groundingQuote":"verbatim substring of provided migration or quote, at least 12 characters"}]}.`,
       findings.map((f) => ({
         id: f.id,

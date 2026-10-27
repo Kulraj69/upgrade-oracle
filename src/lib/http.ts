@@ -62,7 +62,7 @@ export async function handleAnalyzeRequest(
       { status: 415, headers },
     );
   const env: AgentEnv = options.env ?? {
-    GLM_API_KEY: process.env.GLM_API_KEY,
+    GLM_API_KEY: process.env.ENABLE_LLM === "true" && !process.env.VERCEL ? process.env.GLM_API_KEY : undefined,
     GLM_BASE_URL: process.env.GLM_BASE_URL,
     GLM_MODEL: process.env.GLM_MODEL,
   };

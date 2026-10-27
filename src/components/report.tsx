@@ -198,7 +198,7 @@ export function AnalysisReport({ report }: { report: Report }) {
           <p>
             Aliases, dynamic properties, conditional execution, and files
             outside the sample may change the outcome. Quotes are mechanically
-            verified; GLM’s interpretation still needs review.
+            verified; The model’s interpretation still needs review.
           </p>
         </div>
       </details>

@@ -14,9 +14,9 @@ const mono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Upgrade Oracle — Know what breaks before it breaks",
+  title: "Upgrade Oracle — Bitcoin Cash Contract Doctor",
   description:
-    "A little foresight for your next npm install. GLM reads real release notes, finds affected lines in your code, and gives every breaking change an evidence receipt.",
+    "Compile CashScript, examine pinned BCH upgrade evidence, and seal a report with your wallet. Built for BCH BLAZE 2026.",
 };
 
 export default function RootLayout({

@@ -11,7 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "record": "tsx scripts/record.ts",
-    "test:browser": "tsx scripts/browser-bch.ts",
+    "test:browser": "tsx scripts/wizard-e2e.ts && tsx scripts/browser-bch.ts",
     "postinstall": "patch-package",
     "record:bch": "tsx scripts/record-bch.ts",
     "test:wizard": "tsx scripts/wizard-e2e.ts"

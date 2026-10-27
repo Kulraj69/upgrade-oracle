@@ -21,7 +21,8 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { examples } from "@/lib/examples";
+import { bchDependencyExamples as examples } from "@/lib/bch/dependency-examples";
+import { BchTabs } from "./bch-tabs";
 import { parseBumpText, validateInput } from "@/lib/input";
 import type { AnalyzeInput, Report, SourceFile, TraceStep } from "@/lib/types";
 import { AnalysisReport } from "./report";
@@ -33,17 +34,17 @@ type InputMode = "bumps" | "manifest" | "repo";
 export function Oracle({ live }: { live: boolean }) {
   const initial = examples[0];
   const [mode, setMode] = useState<InputMode>("bumps");
-  const [sample, setSample] = useState<string | undefined>(initial.id);
-  const [bumpText, setBumpText] = useState("next 14.2.0 -> 16.0.0");
+  const [sample, setSample] = useState<string | undefined>(undefined);
+  const [bumpText, setBumpText] = useState("cashscript 0.11.0 -> 0.14.0");
   const [files, setFiles] = useState<SourceFile[]>(
     structuredClone(initial.input.files),
   );
   const [activeFile, setActiveFile] = useState(0);
   const [manifest, setManifest] = useState(
-    '{\n  "dependencies": {\n    "next": "14.2.0"\n  }\n}',
+    '{\n  "dependencies": {\n    "cashscript": "0.11.0"\n  }\n}',
   );
   const [targetManifest, setTargetManifest] = useState(
-    '{\n  "dependencies": {\n    "next": "16.0.0"\n  }\n}',
+    '{\n  "dependencies": {\n    "cashscript": "0.14.0"\n  }\n}',
   );
   const [repoUrl, setRepoUrl] = useState("");
   const [repoBumps, setRepoBumps] = useState("");
@@ -79,7 +80,7 @@ export function Oracle({ live }: { live: boolean }) {
   function chooseSample(id: string) {
     const example = examples.find((e) => e.id === id)!;
     setMode("bumps");
-    setSample(id);
+    setSample(undefined);
     setBumpText(
       example.input
         .bumps!.map((b) => `${b.name} ${b.from} -> ${b.to}`)
@@ -150,7 +151,7 @@ export function Oracle({ live }: { live: boolean }) {
     if (upload.current) upload.current.value = "";
   }
   async function analyze() {
-    if (busy) return;
+    if (busy || !live) return;
     setError("");
     setFailedTrace([]);
     let input: AnalyzeInput;
@@ -248,6 +249,7 @@ export function Oracle({ live }: { live: boolean }) {
           </button>
         </header>
         <main>
+          <BchTabs active="dependencies" />
           <div className="above-terminal">
             <span>
               <i /> NIGHT SHIFT / SYSTEM ONLINE
@@ -275,8 +277,8 @@ export function Oracle({ live }: { live: boolean }) {
                   <span className={`mode-badge ${live ? "live" : "demo"}`}>
                     <i />
                     {live
-                      ? "Live mode: GLM connected"
-                      : "Demo mode: recorded run"}
+                      ? "Live dependency analysis"
+                      : "Dependency model is off"}
                   </span>
                 </div>
                 <section className="screen-intro">
@@ -309,10 +311,10 @@ export function Oracle({ live }: { live: boolean }) {
                 </section>
                 <div className="cartridge-bar">
                   <span>
-                    LOAD A SAMPLE <ArrowRight size={12} />
+                    {live ? "LIVE INPUT PRESETS" : "NO RECORDED BCH RUNS"} <ArrowRight size={12} />
                   </span>
                   <div>
-                    {examples.map((example, index) => (
+                    {(live ? examples : []).map((example, index) => (
                       <button
                         key={example.id}
                         className={`cartridge ${sample === example.id ? "active" : ""}`}
@@ -608,7 +610,7 @@ export function Oracle({ live }: { live: boolean }) {
                     <button
                       className="analyze-button"
                       onClick={analyze}
-                      disabled={busy}
+                      disabled={busy || !live}
                     >
                       {busy ? (
                         <>
@@ -635,8 +637,8 @@ export function Oracle({ live }: { live: boolean }) {
                     <p className="run-note">
                       <ShieldCheck size={12} />
                       {live
-                        ? "Source stays in memory. Matching snippets go to GLM."
-                        : "Real GLM runs, replayed. No API key needed."}
+                        ? "Source stays in memory. Matching snippets go to the model."
+                        : "Optional dependency analysis is off. Contract Doctor needs no key."}
                     </p>
                     {remaining !== null && (
                       <p className="remaining-note">
@@ -645,8 +647,7 @@ export function Oracle({ live }: { live: boolean }) {
                     )}
                     {!live && !sample && (
                       <p className="demo-hint">
-                        Custom inputs need a live connection. Load a sample to
-                        explore recorded results.
+                        Dependency analysis needs a server model. Use Contract Doctor for deterministic analysis without a key.
                       </p>
                     )}
                     {error && (
@@ -714,8 +715,8 @@ export function Oracle({ live }: { live: boolean }) {
                         <p>
                           {busy
                             ? live
-                              ? "Fetching public release notes and asking GLM for cited changes. Large upgrades can take a few minutes."
-                              : "Opening an actual GLM analysis with its original sources, code matches, and trace."
+                              ? "Fetching public release notes and extracting cited changes. Large upgrades can take a few minutes."
+                              : "Dependency analysis requires an explicitly enabled server model."
                             : "Load a sample or bring your own code. The Oracle traces breaking changes back to the source."}
                         </p>
                         {busy ? (
@@ -754,7 +755,7 @@ export function Oracle({ live }: { live: boolean }) {
                 </div>
                 <div className="screen-footer">
                   <span>
-                    <span className="status-led" /> GLM-POWERED · HUMAN-REVIEWED
+                    <span className="status-led" /> SOURCE QUOTES · HUMAN REVIEW REQUIRED
                   </span>
                   <span>
                     FETCH → EXTRACT → VERIFY → MATCH <ArrowDown size={11} />
@@ -778,7 +779,7 @@ export function Oracle({ live }: { live: boolean }) {
         <footer className="site-footer">
           <span>BUILT FOR THE QUIET HOURS BEFORE A BIG RELEASE.</span>
           <span>
-            GLM × DETERMINISTIC EVIDENCE <i>✦</i> KULRAJ SINGH / 2026
+            BCH × DETERMINISTIC EVIDENCE <i>✦</i> KULRAJ SINGH / 2026
           </span>
         </footer>
       </div>
@@ -806,7 +807,7 @@ export function Oracle({ live }: { live: boolean }) {
           <h2 id="manual-title">A little foresight.</h2>
           <ol>
             <li>
-              <strong>Load your upgrade.</strong> Pick a recorded cartridge,
+              <strong>Load your upgrade.</strong> Pick a live input preset,
               enter up to 6 bumps, compare two package manifests, or point to a
               public GitHub repo.
             </li>
@@ -816,7 +817,7 @@ export function Oracle({ live }: { live: boolean }) {
             </li>
             <li>
               <strong>Consult the Oracle.</strong> npm resolves versions; GitHub
-              provides notes; GLM extracts API changes and migration guidance.
+              provides notes; an optional model extracts API changes and migration guidance.
               Every quote must match its source exactly.
             </li>
             <li>
@@ -832,8 +833,8 @@ export function Oracle({ live }: { live: boolean }) {
           </p>
           <p>
             {live
-              ? "Live mode is connected. Only snippets for matched changes are sent to GLM. Source files are not persisted."
-              : "Demo mode replays three real GLM runs. Custom inputs require GLM_API_KEY on the server; edits are never presented as a fresh analysis."}
+              ? "Live mode is connected. Only snippets for matched changes are sent to the model. Source files are not persisted."
+              : "Dependency analysis is off by default. Configure a model and explicitly enable it on a local server. BCH presets are available only in live mode; no BCH dependency recordings are claimed."}
           </p>
           <button className="analyze-button" onClick={() => setHelp(false)}>
             RETURN TO TERMINAL <ArrowRight size={17} />
