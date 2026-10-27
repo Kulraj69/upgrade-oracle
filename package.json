@@ -42,6 +42,8 @@
     "eslint-config-next": "16.4.3",
     "tsx": "^4.20.6",
     "typescript": "5.9.3",
-    "vitest": "^4.1.12"
-  }
+    "vitest": "^4.1.12",
+    "ws": "^8.22.0"
+  },
+  "type": "module"
 }
