@@ -10,7 +10,9 @@ export function sourceText(id: string): string {
   if (cache.has(id)) return cache.get(id)!;
   const source = manifest.find((item) => item.id === id);
   if (!source) throw new Error("Unknown pinned source.");
-  const bytes = readFileSync(join(process.cwd(), "src/sources/bch", source.file));
+  const bytes = readFileSync(
+    join(process.cwd(), "src/sources/bch", source.file),
+  );
   if (createHash("sha256").update(bytes).digest("hex") !== source.sha256)
     throw new Error("Pinned source integrity check failed.");
   const text = bytes.toString("utf8");
@@ -25,12 +27,33 @@ export function evidence(id: string, quote: string): Evidence | null {
   if (!source) return null;
   try {
     const result = checkCitations(
-      [{ api: id, sourceVersion: source.sha256, quote, change: "", migration: "" }],
+      [
+        {
+          api: id,
+          sourceVersion: source.sha256,
+          quote,
+          change: "",
+          migration: "",
+        },
+      ],
       [{ version: source.sha256, url: source.url, text: sourceText(id) }],
     );
     if (!result.accepted.length) return null;
-    return { sourceId: id, quote, url: source.url, fetchedAt: source.fetchedAt, sha256: source.sha256 };
-  } catch { return null; }
+    return {
+      sourceId: id,
+      quote,
+      url: source.url,
+      fetchedAt: source.fetchedAt,
+      sha256: source.sha256,
+    };
+  } catch {
+    return null;
+  }
 }
 
-export const pinnedSources = manifest.map(({ id, url, fetchedAt, sha256 }) => ({ id, url, fetchedAt, sha256 }));
+export const pinnedSources = manifest.map(({ id, url, fetchedAt, sha256 }) => ({
+  id,
+  url,
+  fetchedAt,
+  sha256,
+}));
