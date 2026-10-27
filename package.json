@@ -1,0 +1,38 @@
+{
+  "name": "upgrade-oracle",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "record": "tsx scripts/record.ts",
+    "test:browser": "tsx scripts/browser-check.ts"
+  },
+  "dependencies": {
+    "lucide-react": "^1.61.0",
+    "next": "16.4.3",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "semver": "^7.7.3"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/vt323": "^5.2.7",
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/semver": "^7.7.1",
+    "eslint": "^9",
+    "eslint-config-next": "16.4.3",
+    "tsx": "^4.20.6",
+    "typescript": "5.9.3",
+    "vitest": "^4.1.12"
+  }
+}

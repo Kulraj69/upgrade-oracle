@@ -1,0 +1,19 @@
+Build "Upgrade Oracle" in THIS directory. Read ./PLAN.md first. Reuse /workspace/devpost/qloo patterns heavily (package.json versions, vercel.json, vitest config, rate limiter src/lib/rate-limit.ts, cache, http helpers, trace panel and receipt drawer components). Run npm install.
+
+Product: user pastes package.json (or picks dependency bumps "pkg from -> to") plus up to 5 source files (or a GitHub repo URL whose package.json + up to 30 small src files are fetched via raw.githubusercontent / GitHub API unauthenticated). Agent:
+1. Diff versions; for each bumped dependency resolve versions via https://registry.npmjs.org/<pkg> (repository URL, versions in range).
+2. Fetch release notes: GitHub releases API for the repo (unauthenticated, cache) and/or CHANGELOG.md raw; extract sections for versions in (from, to].
+3. GLM extracts breaking changes as structured JSON {api, change, migration, sourceVersion, quote}. The quote MUST be a verbatim substring of fetched notes; a deterministic citation checker drops any item whose quote isn't found.
+4. Deterministic grep of user code for each api token -> hits (file, line, snippet).
+5. Verdict per item: will-break (hit), might-break (fuzzy hit), safe (no hit). GLM writes a 1-2 line fix per will-break item, grounded in migration text.
+Output: ranked report + trace of every tool call (url, ms, bytes) + receipts linking each claim to the changelog URL and quote.
+
+LLM: OpenAI-compatible chat completions; env GLM_BASE_URL (default https://api.tokenfactory.nebius.com/v1), GLM_API_KEY, GLM_MODEL (default zai-org/GLM-5.3). JSON-mode prompting, robust parse, max_tokens modest. If no key: demo mode replays recorded runs from src/recordings/*.json and shows a "Demo mode: recorded run" badge.
+Recordings: write scripts/record.ts (run with npx tsx) that runs the real agent for 3 examples and saves JSON: (a) next 14.2.0 -> 16.0.0 with a small sample app, (b) react-router-dom 5.3.4 -> 6.22.0 with sample code, (c) eslint 8 -> 9 with sample config. Actually run it on the box with env GLM_API_KEY loaded from /workspace/devpost/secrets/nebius_key.txt (read the file in the shell into the env var; never print it). Commit only the recordings, never the key.
+
+API: POST /api/analyze; rate limit 5/IP/hour, 100/day global; input caps (package.json 50KB, files 5 x 20KB). Fetch timeouts 10s, max 6 deps per run.
+Tests (vitest, 15+ passing): version diffing/semver range selection, changelog section extraction (markdown + GitHub releases), citation checker, grep matcher, verdict ranking, rate limit, demo-mode end-to-end.
+Also: LICENSE (MIT, Kulraj Singh 2026), README for humans and AI judges ("do X - see Y", how GLM is used), .env.example, .gitignore (.env*, secrets), demo-script.md for a 5-7 minute demo video. Run npm test, npm run typecheck, npm run build until green. Do not git push or deploy. Never print env var values.
+
+## UI STYLE OVERRIDE (supersedes "dark editorial" above)
+Dreamcore 80s retro computing. Reference images: ./01M5X593PZ6X2NBSJRC5GK8WKM.png and ./01M5X5B22Y7HS6SE2097Q564DS.png (view them; do NOT ship them in public/). The app should feel like sitting at an old beige IBM-style terminal at night: deep navy night sky background with a CSS/SVG moon, snowy mountain silhouettes and stone ruin silhouettes (draw them yourself in SVG/CSS); content framed in beige hardware panels (bezels, vents, a label plate "UPGRADE ORACLE 5150"); screen area glowing pale green-blue CRT with subtle scanlines, slight vignette/curvature, soft film grain overlay. Monospace/pixel font for terminal text (e.g. VT323 or IBM Plex Mono via next/font/google). Picks print out like terminal results / thermal receipts line by line (tasteful typewriter animation, respect prefers-reduced-motion). Readable contrast, polished on mobile. Apply throughout.
